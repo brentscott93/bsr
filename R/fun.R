@@ -25,6 +25,39 @@ strava_athlete_activities_api <- function(oauth_token, page_number, page_size = 
 }
 
 
+#' Helper for gg_cal_plot
+#' @noRd
+get_strava_data <- function(token){
+  # A list to store the returned data into
+  data_pages <- list()
+
+  # Start with page #1
+  page_number <- 1
+
+  repeat {
+    strava_data_page <- strava_athlete_activities_api(token, page_number)
+    if(length(strava_data_page)==0) break
+
+    # Query API
+    data_pages[[page_number]] <- strava_data_page
+
+    # Count number of records returned
+    records_returrned <- data_pages[[page_number]] %>% nrow()
+    print(paste0('Retrieved ', records_returrned, ' records'))
+
+    # Continue to the next page if the number of returned records matches the page size
+    if (records_returrned < 50) {
+      print("All records returned, exiting")
+      break
+    } else {
+      print("checking for more records ..")
+      page_number <- page_number + 1
+    }
+  }
+
+  data <- rbind_pages(data_pages)
+
+}
 
 #' Plot running calendar from Strava
 #'
