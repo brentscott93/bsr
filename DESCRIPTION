@@ -17,5 +17,6 @@ Imports:
     lubridate,
     magrittr,
     purrr,
+    stringr,
     tibble
 RoxygenNote: 7.1.2

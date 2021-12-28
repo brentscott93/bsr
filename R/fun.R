@@ -8,14 +8,15 @@ get_week_month<- function(x, y){
 
 #' Helper for gg_cal_plot
 #' @noRd
+#' @import httr jsonlite
 strava_athlete_activities_api <- function(oauth_token, page_number, page_size = 50) {
   print(paste0("Querying Strava V1 API v3/athlete/activities [page ", page_number, "]"))
-  resp <- GET(
+  resp <- httr::GET(
     url = "https://www.strava.com/api/v3/athlete/activities",
     config = oauth_token,
     query = list(per_page = page_size, page = page_number))
 
-  if (http_type(resp) != "application/json") {
+  if (httr::http_type(resp) != "application/json") {
     stop("API did not return json", call. = FALSE)
     break
   }
@@ -27,6 +28,8 @@ strava_athlete_activities_api <- function(oauth_token, page_number, page_size = 
 
 #' Helper for gg_cal_plot
 #' @noRd
+#' @import jsonlite magrittr
+#' @export
 get_strava_data <- function(token){
   # A list to store the returned data into
   data_pages <- list()
@@ -67,14 +70,16 @@ get_strava_data <- function(token){
 #'
 #' @return a ggplot
 #' @export
-gg_run_cal <- function(data, year, current_year){
+#' @import ggplot2 magrittr lubridate dplyr stringr
+#' @importFrom purrr "map"
+gg_run_cal <- function(data, yr, current_year){
   # Combine the list of data frames into a single dataframe of all collected pages
   data_year <-
     data %>%
-    dplyr::filter(year(start_date_local) == year & type == 'Run')
+    dplyr::filter(lubridate::year(start_date_local) == yr & type == 'Run')
 
   completed <- round(sum(data_year$distance*0.000621371), 2)
-  to_go <- year-completed
+  to_go <- yr-completed
 
   # day_of_year <- yday(with_tz(Sys.Date(), 'America/New_York'))
   # goal <- round(year/365*day_of_year, 2)
@@ -87,7 +92,7 @@ gg_run_cal <- function(data, year, current_year){
                   weekday = wday(date, label = T),
                   day_of_month = mday(date),
                   month = month(date, label = T),
-                  year = year(date),
+                  year = lubridate::year(date),
                   first_day = '01') %>%
     tidyr::unite(c(month, year), col = 'month_year', sep = ' ', remove = F) %>%
     tidyr::unite(c(year, month, first_day), col = 'first_day_of_month', sep = '-', remove = F) %>%
@@ -111,7 +116,7 @@ gg_run_cal <- function(data, year, current_year){
                   weekday = wday(date, label = T),
                   day_of_month = mday(date),
                   month = month(date, label = T),
-                  year = year(date),
+                  year = lubridate::year(date),
                   first_day = '01') %>%
     tidyr::unite(c(month, year), col = 'month_year', sep = ' ', remove = F) %>%
     tidyr::unite(c(year, month, first_day), col = 'first_day_of_month', sep = '-', remove = F) %>%
@@ -143,30 +148,30 @@ gg_run_cal <- function(data, year, current_year){
     dplyr::summarize(Mileage = sum(mileage))
 
 
-  ggplot2::ggplot(cal_data, aes(weekday, -week_of_month)) +
-    geom_tile(aes(fill = Mileage),
-              color = "grey40")+
-    geom_tile(data = with_data,
+ ggplot(cal_data, aes(weekday, -week_of_month)) +
+  geom_tile(aes(fill = Mileage),
+                       color = "grey40")+
+   geom_tile(data = with_data,
               aes(x = weekday, y=  -week_of_month, fill = Mileage, color = With), size = 1)+
     geom_text(aes(label = Mileage), size = 3)+
     facet_wrap(~month_year, ncol = 3) +
-    scale_fill_gradient(low = "yellow", high = "red", na.value = 'grey20')+
+   scale_fill_gradient(low = "yellow", high = "red", na.value = 'grey20')+
     scale_y_continuous(name = '',
                        labels = NULL,
-                       breaks = NULL)+
+                     breaks = NULL)+
     xlab('')+
-    theme_linedraw(base_size = 14)+
+   theme_linedraw(base_size = 14)+
     scale_color_manual(values = c("hotpink", 'steelblue'))+
-    theme(panel.grid = element_blank(),
-          axis.ticks = element_blank(),
-          panel.border = element_blank(),
-          panel.background = element_rect(fill = "#2C2B2B", color = "#2C2B2B"),
-          plot.background = element_rect(fill = "#2C2B2B", color = "#2C2B2B"),
-          legend.background = element_rect(fill = "#2C2B2B", color = "#2C2B2B"),
-          text = element_text(color = "white"),
-          axis.text.x  = element_text(color = "white"),
-          strip.text = element_text(color = "#2B82E1"),
-          strip.background =  element_rect(fill = "#2C2B2B", color = "#2C2B2B")
+   theme(panel.grid = element_blank(),
+                   axis.ticks = element_blank(),
+                   panel.border = element_blank(),
+                   panel.background = element_rect(fill = "#2C2B2B", color = "#2C2B2B"),
+                   plot.background = element_rect(fill = "#2C2B2B", color = "#2C2B2B"),
+                   legend.background = element_rect(fill = "#2C2B2B", color = "#2C2B2B"),
+                   text = element_text(color = "white"),
+                   axis.text.x  = element_text(color = "white"),
+                   strip.text = element_text(color = "#2B82E1"),
+                   strip.background =  element_rect(fill = "#2C2B2B", color = "#2C2B2B")
     )
 
 }
